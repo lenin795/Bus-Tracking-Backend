@@ -64,8 +64,8 @@ router.post('/', auth(['admin']), async (req, res) => {
       });
     }
 
-    // IMPORTANT: Generate URL for QR code
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    // ✅ FIXED: Use production URL for QR code
+    const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
     const trackingUrl = `${clientUrl}/track?stop=${stopCode}`;
     
     console.log('🔗 Generating QR code for URL:', trackingUrl);
@@ -122,9 +122,9 @@ router.put('/:id', auth(['admin']), async (req, res) => {
       });
     }
 
-    // Regenerate QR code if stop code changes
+    // ✅ FIXED: Regenerate QR code with production URL if stop code changes
     if (stopCode && stopCode !== busStop.stopCode) {
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+      const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
       const trackingUrl = `${clientUrl}/track?stop=${stopCode}`;
       
       const qrCodeDataUrl = await QRCode.toDataURL(trackingUrl, {
@@ -192,7 +192,8 @@ router.get('/:id/qr-code', async (req, res) => {
       });
     }
 
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    // ✅ FIXED: Use production URL
+    const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
     const trackingUrl = `${clientUrl}/track?stop=${busStop.stopCode}`;
 
     res.json({ 
