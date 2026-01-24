@@ -24,4 +24,33 @@ router.get('/drivers', auth(['admin']), async (req, res) => {
   }
 });
 
+// Backend: Add this route to get all users
+router.get('/users', authMiddleware, async (req, res) => {
+  try {
+    // Only allow admins to view all users
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const users = await User.find().select('-password');
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Backend: Add this route to delete users
+router.delete('/users/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
