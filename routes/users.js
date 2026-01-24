@@ -24,32 +24,79 @@ router.get('/drivers', auth(['admin']), async (req, res) => {
   }
 });
 
-// Backend: Add this route to get all users
-router.get('/users', authMiddleware, async (req, res) => {
+// Get all users (Admin only)
+router.get('/', auth(['admin']), async (req, res) => {
   try {
-    // Only allow admins to view all users
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    const users = await User.find().select('-password');
-    res.json({ users });
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 });
+
+    res.json({ 
+      success: true,
+      users 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get users error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error' 
+    });
   }
 });
 
-// Backend: Add this route to delete users
-router.delete('/users/:id', authMiddleware, async (req, res) => {
+// Delete user (Admin only)
+router.delete('/:id', auth(['admin']), async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied' });
+    const userId = req.params.id;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
-    
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User deleted successfully' });
+
+    // Prevent deleting admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Cannot delete admin users' 
+      });
+    }
+
+    // Prevent deleting yourself
+    if (userId === req.userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Cannot delete your own account' 
+      });
+    }
+
+    // If user is a driver, unassign from bus first
+    if (user.role === 'driver') {
+      const Bus = require('../models/Bus');
+      await Bus.updateMany(
+        { driver: userId }, 
+        { $set: { driver: null } }
+      );
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Delete user error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 });
 
