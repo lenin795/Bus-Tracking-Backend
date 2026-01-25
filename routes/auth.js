@@ -73,13 +73,13 @@ router.post('/register', async (req, res) => {
 // Login user
 router.post('/login', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
 
     // Validation
-    if (!email || !password || !role) {
+    if (!email || !password ) {
       return res.status(400).json({ 
         success: false,
-        message: 'Please provide email, password, and role' 
+        message: 'Please provide email, password' 
       });
     }
 
@@ -93,12 +93,12 @@ router.post('/login', async (req, res) => {
     }
 
     // Verify role
-    if (user.role !== role) {
-      return res.status(403).json({ 
-        success: false,
-        message: `Access denied. This account is not registered as ${role}` 
-      });
-    }
+    // if (user.role !== role) {
+    //   return res.status(403).json({ 
+    //     success: false,
+    //     message: `Access denied. This account is not registered as ${role}` 
+    //   });
+    // }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
