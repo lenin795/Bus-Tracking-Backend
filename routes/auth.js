@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
         message: 'User with this email already exists' 
       });
     }
-
+    
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -92,13 +92,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verify role
-    // if (user.role !== role) {
-    //   return res.status(403).json({ 
-    //     success: false,
-    //     message: `Access denied. This account is not registered as ${role}` 
-    //   });
-    // }
+    
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
