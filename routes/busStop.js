@@ -31,10 +31,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get bus stop by stop code
+// ✅ Get bus stop by stop code — case-insensitive
 router.get('/code/:stopCode', async (req, res) => {
   try {
-    const busStop = await BusStop.findOne({ stopCode: req.params.stopCode });
+    const busStop = await BusStop.findOne({
+      stopCode: { $regex: new RegExp(`^${req.params.stopCode}$`, 'i') }
+    });
     if (!busStop) {
       return res.status(404).json({ success: false, message: 'Bus stop not found' });
     }
@@ -56,7 +58,13 @@ router.post('/', auth(['admin']), async (req, res) => {
       });
     }
 
-    const existingStop = await BusStop.findOne({ stopCode });
+    // ✅ Normalize stop code to uppercase before saving
+    const normalizedCode = stopCode.trim().toUpperCase();
+
+    // ✅ Case-insensitive duplicate check
+    const existingStop = await BusStop.findOne({
+      stopCode: { $regex: new RegExp(`^${normalizedCode}$`, 'i') }
+    });
     if (existingStop) {
       return res.status(400).json({ 
         success: false,
@@ -64,9 +72,8 @@ router.post('/', auth(['admin']), async (req, res) => {
       });
     }
 
-    // ✅ FIXED: Use production URL for QR code
     const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
-    const trackingUrl = `${clientUrl}/track?stop=${stopCode}`;
+    const trackingUrl = `${clientUrl}/track?stop=${normalizedCode}`;
     
     console.log('🔗 Generating QR code for URL:', trackingUrl);
     
@@ -83,7 +90,7 @@ router.post('/', auth(['admin']), async (req, res) => {
 
     const busStop = new BusStop({
       stopName,
-      stopCode,
+      stopCode: normalizedCode, // ✅ Always saved as uppercase
       location,
       qrCode: qrCodeDataUrl,
       address,
@@ -98,7 +105,7 @@ router.post('/', auth(['admin']), async (req, res) => {
       success: true,
       message: 'Bus stop created successfully',
       busStop,
-      qrUrl: trackingUrl // Include URL in response for verification
+      qrUrl: trackingUrl
     });
   } catch (error) {
     console.error('Create bus stop error:', error);
@@ -122,10 +129,12 @@ router.put('/:id', auth(['admin']), async (req, res) => {
       });
     }
 
-    // ✅ FIXED: Regenerate QR code with production URL if stop code changes
-    if (stopCode && stopCode !== busStop.stopCode) {
+    // ✅ Normalize new stop code if provided
+    const normalizedCode = stopCode ? stopCode.trim().toUpperCase() : null;
+
+    if (normalizedCode && normalizedCode !== busStop.stopCode) {
       const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
-      const trackingUrl = `${clientUrl}/track?stop=${stopCode}`;
+      const trackingUrl = `${clientUrl}/track?stop=${normalizedCode}`;
       
       const qrCodeDataUrl = await QRCode.toDataURL(trackingUrl, {
         errorCorrectionLevel: 'H',
@@ -135,10 +144,10 @@ router.put('/:id', auth(['admin']), async (req, res) => {
       });
 
       busStop.qrCode = qrCodeDataUrl;
+      busStop.stopCode = normalizedCode; // ✅ Save normalized
     }
 
     if (stopName) busStop.stopName = stopName;
-    if (stopCode) busStop.stopCode = stopCode;
     if (location) busStop.location = location;
     if (address) busStop.address = address;
     if (landmarks) busStop.landmarks = landmarks;
@@ -192,7 +201,6 @@ router.get('/:id/qr-code', async (req, res) => {
       });
     }
 
-    // ✅ FIXED: Use production URL
     const clientUrl = process.env.CLIENT_URL || 'https://bus-trackingapp.netlify.app';
     const trackingUrl = `${clientUrl}/track?stop=${busStop.stopCode}`;
 
@@ -201,7 +209,7 @@ router.get('/:id/qr-code', async (req, res) => {
       stopName: busStop.stopName,
       stopCode: busStop.stopCode,
       qrCode: busStop.qrCode,
-      trackingUrl: trackingUrl // Include URL for reference
+      trackingUrl: trackingUrl
     });
   } catch (error) {
     res.status(500).json({ 
