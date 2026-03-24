@@ -27,6 +27,17 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  avatarUrl: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 240,
+    default: ''
+  },
   isActive: {
     type: Boolean,
     default: true

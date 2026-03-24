@@ -8,7 +8,7 @@ const auth = require('../middleware/auth');
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, role, phone, avatarUrl, bio } = req.body;
 
     // Validation
     if (!name || !email || !password || !role) {
@@ -37,7 +37,9 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      phone
+      phone,
+      avatarUrl,
+      bio
     });
 
     await user.save();
@@ -58,7 +60,9 @@ router.post('/register', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        phone: user.phone
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -119,7 +123,9 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        phone: user.phone
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -159,11 +165,17 @@ router.get('/me', auth(), async (req, res) => {
 // Update user profile
 router.put('/profile', auth(), async (req, res) => {
   try {
-    const { name, phone } = req.body;
-    
+    const { name, phone, avatarUrl, bio } = req.body;
+
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+    if (bio !== undefined) updates.bio = bio;
+
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { name, phone },
+      updates,
       { new: true }
     ).select('-password');
 
